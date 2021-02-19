@@ -1,0 +1,13 @@
+{
+    "compilerOptions": {
+      "module": "es2015",
+      "target": "es2015",
+      "declaration": true,
+      "moduleResolution": "node",
+      "outDir": "./dist",
+      "typeRoots": ["@types/events"]
+    },
+    "include": [
+      "src/**/*"
+    ]
+  }

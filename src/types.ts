@@ -1,0 +1,36 @@
+export type Config = {
+  autoSync?: boolean;
+  history?: number;
+  servers?: Array<NtpServer>;
+  syncInterval?: number;
+  syncOnCreation?: boolean;
+  syncTimeout?: number;
+};
+
+export type NtpServer = {
+  server: string;
+  port: number;
+};
+
+export type Delta = {
+  dt: number;
+  ntp: number;
+};
+
+export type NtpDelta = {
+  delta: number;
+  fetchingServer: NtpServer;
+};
+
+export type NtpHistory = {
+  currentConsecutiveErrorCount: number;
+  currentServer: NtpServer;
+  deltas: Array<Delta>;
+  errors: Array<Error>;
+  isInErrorState: boolean;
+  lastSyncTime: number;
+  lastNtpTime: number;
+  lastError: Error;
+  lifetimeErrorCount: number;
+  maxConsecutiveErrorCount: number;
+};
