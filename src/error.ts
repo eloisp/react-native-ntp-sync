@@ -1,6 +1,6 @@
 import { NtpServer } from "./types";
 
-const getFieldValue = (obj: unknown) => {
+const getFieldValue = (obj: any) => {
   if (!obj) {
     return "Empty";
   }

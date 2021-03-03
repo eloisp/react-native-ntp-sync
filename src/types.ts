@@ -28,9 +28,9 @@ export type NtpHistory = {
   deltas: Array<Delta>;
   errors: Array<Error>;
   isInErrorState: boolean;
-  lastSyncTime: number;
-  lastNtpTime: number;
-  lastError: Error;
+  lastSyncTime: number | null;
+  lastNtpTime: number | null;
+  lastError: Error | null;
   lifetimeErrorCount: number;
   maxConsecutiveErrorCount: number;
 };

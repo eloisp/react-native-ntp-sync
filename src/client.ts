@@ -1,7 +1,7 @@
 import { Buffer } from "buffer";
 import dgram from "react-native-udp";
 
-const getError = (obj: unknown): Error => {
+const getError = (obj: any): Error => {
   if (!obj) {
     return new Error("unknown error");
   }
@@ -39,8 +39,8 @@ export const getNetworkTime = async (
     let errorFired = false;
 
     const timeout = setTimeout(() => {
-      client.close();
       errorFired = true;
+      client.close();
 
       reject(new Error("timed out waiting for response"));
     }, serverTimeout);

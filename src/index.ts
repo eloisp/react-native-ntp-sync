@@ -9,7 +9,7 @@ export default class NTPSync {
   private tickRate: number;
   private syncTimeout: number;
   private currentIndex = 0;
-  private tickId = null;
+  private tickId : number | null = null;
   private historyDetails: NtpHistory;
 
   public constructor({
@@ -47,7 +47,7 @@ export default class NTPSync {
     }
 
     if (autoSync) {
-      this.startTick();
+      this.startAutoSync();
     }
   }
 
@@ -108,11 +108,18 @@ export default class NTPSync {
     this.historyDetails.currentServer = this.ntpServers[this.currentIndex];
   };
 
-  private startTick = () => {
+  public startAutoSync = () => {
     if (!this.tickId) {
       this.tickId = setInterval(() => this.syncTime(), this.tickRate);
     }
   };
+
+  public stopAutoSync = () => {
+    if (this.tickId) {
+      clearInterval(this.tickId);
+      this.tickId = null;
+    }
+  }
 
   public syncTime = async (): Promise<boolean> => {
     try {
