@@ -138,13 +138,13 @@ When dealing with mobile development, it is sometimes necessary to respond to ch
 React Native allows for watching device network status. Which can be used with `setOnline` like so:
 
 ```javascript
-import clockSync from 'react-native-clock-sync';
+import ntpSync from '@ruanitto/react-native-ntp-sync';
 import { NetInfo } from 'react-native';
 // start in offline state
 const config = {
   startOnline: false,
 };
-const clock = new clockSync(config);
+const clock = new ntpSync(config);
 // set initial state
 NetInfo.isConnected.fetch().then((isConnected) => {
   clock.setOnline(isConnected);
