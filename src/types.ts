@@ -1,5 +1,6 @@
 export type Config = {
   autoSync?: boolean;
+  startOnline?: boolean;
   history?: number;
   servers?: Array<NtpServer>;
   syncInterval?: number;
@@ -19,7 +20,7 @@ export type Delta = {
 
 export type NtpDelta = {
   delta: number;
-  fetchingServer: NtpServer;
+  fetchingServer?: NtpServer;
 };
 
 export type NtpHistory = {

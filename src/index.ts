@@ -9,8 +9,9 @@ export default class NTPSync {
   private tickRate: number;
   private syncTimeout: number;
   private currentIndex = 0;
-  private tickId : number | null = null;
+  private tickId: number | null = null;
   private historyDetails: NtpHistory;
+  private isOnline: boolean;
 
   public constructor({
     servers = [
@@ -24,6 +25,7 @@ export default class NTPSync {
     syncTimeout = 10 * 1000,
     syncOnCreation = true,
     autoSync = true,
+    startOnline = true
   }: Config = {}) {
     this.ntpServers = servers;
     this.limit = history;
@@ -41,8 +43,9 @@ export default class NTPSync {
       lifetimeErrorCount: 0,
       maxConsecutiveErrorCount: 0,
     };
+    this.isOnline = startOnline;
 
-    if (syncOnCreation) {
+    if (syncOnCreation && startOnline) {
       this.syncTime();
     }
 
@@ -67,24 +70,43 @@ export default class NTPSync {
     return dt;
   };
 
+  public setIsOnline(isOnline: boolean) {
+    if (isOnline && !this.isOnline) {
+      this.isOnline = true;
+      this.syncTime();
+      this.startAutoSync();
+    } else if (!isOnline && this.isOnline) {
+      this.stopAutoSync();
+      this.isOnline = false;
+    }
+  }
+
+  public getIsOnline() {
+    return this.isOnline
+  }
+
   public getDelta = async (): Promise<NtpDelta> => {
-    const fetchingServer = Object.assign({}, this.historyDetails.currentServer);
+    if (this.isOnline) {
+      const fetchingServer = Object.assign({}, this.historyDetails.currentServer);
 
-    try {
-      const ntpDate = await getNetworkTime(
-        this.historyDetails.currentServer.server,
-        this.historyDetails.currentServer.port,
-        this.syncTimeout
-      );
-      const delta = this.computeAndUpdate(ntpDate);
+      try {
+        const ntpDate = await getNetworkTime(
+          this.historyDetails.currentServer.server,
+          this.historyDetails.currentServer.port,
+          this.syncTimeout
+        );
+        const delta = this.computeAndUpdate(ntpDate);
 
-      return {
-        delta,
-        fetchingServer,
-      };
-    } catch (err) {
-      this.shiftServer();
-      throw new NtpClientError(err, fetchingServer);
+        return {
+          delta,
+          fetchingServer,
+        };
+      } catch (err: any) {
+        this.shiftServer();
+        throw new NtpClientError(err, fetchingServer);
+      }
+    } else {
+      return { delta: 0 }
     }
   };
 
@@ -122,32 +144,35 @@ export default class NTPSync {
   }
 
   public syncTime = async (): Promise<boolean> => {
-    try {
-      const delta = await this.getDelta();
+    if (this.isOnline) {
+      try {
+        const delta = await this.getDelta();
 
-      this.historyDetails.currentConsecutiveErrorCount = 0;
-      this.historyDetails.isInErrorState = false;
-      return true;
-    } catch (err) {
-      var ed = {
-        name: err.name,
-        message: err.message,
-        server: err.server,
-        stack: err.stack,
-        time: Date.now(),
-      };
-      this.historyDetails.currentConsecutiveErrorCount++;
-      if (this.historyDetails.errors.length === this.limit) {
-        this.historyDetails.errors.shift();
+        this.historyDetails.currentConsecutiveErrorCount = 0;
+        this.historyDetails.isInErrorState = false;
+        return true;
+      } catch (err: any) {
+        var ed = {
+          name: err.name,
+          message: err.message,
+          server: err.server,
+          stack: err.stack,
+          time: Date.now(),
+        };
+        this.historyDetails.currentConsecutiveErrorCount++;
+        if (this.historyDetails.errors.length === this.limit) {
+          this.historyDetails.errors.shift();
+        }
+        this.historyDetails.errors.push(ed);
+        this.historyDetails.isInErrorState = true;
+        this.historyDetails.lastError = ed;
+        this.historyDetails.lifetimeErrorCount++;
+        this.historyDetails.maxConsecutiveErrorCount = Math.max(
+          this.historyDetails.maxConsecutiveErrorCount,
+          this.historyDetails.currentConsecutiveErrorCount
+        );
       }
-      this.historyDetails.errors.push(ed);
-      this.historyDetails.isInErrorState = true;
-      this.historyDetails.lastError = ed;
-      this.historyDetails.lifetimeErrorCount++;
-      this.historyDetails.maxConsecutiveErrorCount = Math.max(
-        this.historyDetails.maxConsecutiveErrorCount,
-        this.historyDetails.currentConsecutiveErrorCount
-      );
+      return false;
     }
     return false;
   };

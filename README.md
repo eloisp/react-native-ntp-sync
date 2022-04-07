@@ -73,7 +73,8 @@ The client constructor can accept the following options. **all options are optio
 ```
 
 - `syncInterval` (+number) : The time (in milliseconds) between each call to an NTP server to get the latest UTC timestamp. Defaults to 5 minutes
-- `syncOnCreation` (boolean) : A flag to control the NTP sync upon instantiation. Defaults to `true`. (immediate NTP server fetch attempt)
+- `startOnline` (boolean) : A flag to control network activity upon clockSync instantiation. Defaults to `true`. (immediate NTP server fetch attempt)
+- `syncOnCreation` (boolean) : A flag to control the NTP sync upon instantiation. Defaults to `true`. (immediate NTP server fetch attempt if startOnline is true)
 - `syncTimeout` (+number) : The timeout (in milliseconds) that will be used in every NTP syncronization . Defaults to 10 seconds
 
 ```javascript
@@ -85,6 +86,10 @@ The client constructor can accept the following options. **all options are optio
 ```
 
 ## Methods
+
+### getIsOnline()
+
+Returns the current `boolean` network status of the clockSync instance. `false` indicates that no network activity will be performed/NTP servers will not be contacted.
 
 ### getHistory()
 
@@ -115,6 +120,47 @@ Returns an `Object` of historical details generated as _clockSync_ runs. It incl
 ### getTime()
 
 Returns unix timestamp based on delta values between server and your local time. This is the time that can be used instead of `new Date().getTime()`
+
+### setOnline(boolean)
+
+Sets the current (per-instance) network status. Passing an argument of `true` (if the current status is `false`) will cause the instance to immediately attempt an NTP fetch, and resume the internal update timer at a frequency determined by the `syncDelay` config parameter (or its default). Conversely, passing `false` (when current is `true`) immediately stops the internal timer and prevents any further network activity. **NOTE:** Calling this method with an argument that matches the instance's current network state results in a no-op.
+
+#### Offline behavior
+
+When set to _offline_, calls to `getTime()` will return the current device time adjusted by whatever values are currently in the history. (or no adjustment if the history is empty/NTP has never been fetched)
+
+Calls to `syncTime()` are effectively a no-op in offline mode. No NTP fetch will be performed, and no updates to the local time history will be made (to prevent polluting the running average drift).
+
+#### Example
+
+When dealing with mobile development, it is sometimes necessary to respond to changes in network availability. `setOnline` provides a convenient 'hook' to do so, preventing unnecessary errors and timeouts.
+
+React Native allows for watching device network status. Which can be used with `setOnline` like so:
+
+```javascript
+import clockSync from 'react-native-clock-sync';
+import { NetInfo } from 'react-native';
+// start in offline state
+const config = {
+  startOnline: false,
+};
+const clock = new clockSync(config);
+// set initial state
+NetInfo.isConnected.fetch().then((isConnected) => {
+  clock.setOnline(isConnected);
+});
+// this handler will receive the device's network status changes
+function handleConnectivityChange(isConnected) {
+  clock.setOnline(isConnected);
+}
+// register handler with react-native
+NetInfo.isConnected.addEventListener(
+  'connectionChange',
+  handleConnectivityChange
+);
+```
+
+**NOTE:** The example above does not account for rapid changes in network state. You may wish to add additional handling to 'de-bounce' such changes. Also, remember to remove the listener and set your clockSync instance to _offline_ when done (un-mounting components, shutting down, etc.)
 
 ### syncTime()
 
